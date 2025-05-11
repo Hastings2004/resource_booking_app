@@ -1,7 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:resource_booking_app/auth/Api.dart';
+import 'package:resource_booking_app/auth/login.dart';
 import 'package:resource_booking_app/components/TextField.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 
 class Register extends StatefulWidget {
   final VoidCallback showLoginScreen;
@@ -31,175 +34,31 @@ class _RegisterState extends State<Register> {
     super.dispose();
   }
 
-  Future addUserDetails() async{
-    final user = FirebaseAuth.instance.currentUser;
-    final uid = user?.uid;
+  void signUpUser() async{
+    var data = {
+      "name": firstNameController.text,
+      "email": emailController.text,
+      "password": passwordController.text,
+      "password_confirmation": confirmPasswordController.text,
+    };
 
-    if(uid != null){
-      await FirebaseFirestore.instance.collection("users").doc(uid).set({
-        "first_name": firstNameController.text.trim(),
-        "last_name": lastNameController.text.trim(),
-        "reg_number": regNumberController.text.trim(),
-        "phone_number": phoneNumberController.text.trim(),
-        "email": emailController.text.trim(),
-      });
+    var res = await CallApi().postData(data, 'register');
+    var body = json.decode(res.body);
+
+    if(body['success'] == true) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LoginScreen(showRegisterPage: () {
+            
+          },),
+        ),
+      );
+    } else {
+      // Handle registration error
+      print("Registration failed: ${body['message']}");
     }
   }
-  Future signUpUser() async{
-
-    if(emailController.text.isEmpty || 
-    passwordController.text.isEmpty || 
-    confirmPasswordController.text.isEmpty ||
-    firstNameController.text.isEmpty ||
-    lastNameController.text.isEmpty ||
-    phoneNumberController.text.isEmpty ||
-    regNumberController.text.isEmpty
-    ){
-      showDialog(
-        context: context, 
-        builder: (context) {
-          return AlertDialog(
-            content: const Text("Please fill in all fields"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                }, 
-                child: const Text("OK")
-              )
-            ],
-          );
-        }
-      );
-      return;
-    }
-    
-
-    if(passwordConfirm()){
-
-      showDialog(
-        context: context, 
-        barrierDismissible: false,
-        builder: (context) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-      ); 
-
-      try {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: emailController.text.trim(), 
-          password: passwordController.text.trim()
-        );
-         // ignore: use_build_context_synchronously
-         
-        // Add user details to the database
-        addUserDetails();
-        Navigator.pop(context);
-      } on FirebaseAuthException catch (e) {
-
-        Navigator.pop(context);
-
-        if(e.code == 'weak-password') {
-          showDialog(
-            context: context, 
-            builder: (context) {
-              return AlertDialog(
-                content: const Text("Password is too weak"),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    }, 
-                    child: const Text("OK")
-                  )
-                ],
-              );
-            }
-          );
-        } else if (e.code == 'email-already-in-use') {
-          showDialog(
-            context: context, 
-            builder: (context) {
-              return AlertDialog(
-                content: const Text("Email already in use"),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    }, 
-                    child: const Text("OK")
-                  )
-                ],
-              );
-            }
-          );
-
-        } else if (e.code == 'invalid-email') {
-          showDialog(
-            context: context, 
-            builder: (context) {
-              return AlertDialog(
-                content: const Text("Invalid email"),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    }, 
-                    child: const Text("OK")
-                  )
-                ],
-              );
-            }
-          );
-        } else {
-          showDialog(
-            context: context, 
-            builder: (context) {
-              return AlertDialog(
-                content: const Text("An error occurred"),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    }, 
-                    child: const Text("OK")
-                  )
-                ],
-              );
-            }
-          );
-        }        
-      }
-    }
-  }
-
- 
-
-   bool passwordConfirm() {
-    if(passwordController.text.trim() == confirmPasswordController.text.trim()){
-      return true;
-    }else{
-      showDialog(
-        context: context, 
-        builder: (context) {
-          return AlertDialog(
-            content: const Text("Password do not match"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                }, 
-                child: const Text("OK")
-              )
-            ],
-          );
-        }
-      );
-      return false;
-    }
-   }
   
   @override
   Widget build(BuildContext context) {
