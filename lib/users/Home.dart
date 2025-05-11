@@ -1,19 +1,42 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:resource_booking_app/components/AppBar.dart';
+import 'package:resource_booking_app/read_data/getUserData.dart';
 import 'package:resource_booking_app/users/Booking.dart';
 import 'package:resource_booking_app/users/Profile.dart';
 import 'package:resource_booking_app/users/Resourse.dart';
 import 'package:resource_booking_app/users/Settings.dart';
 
-class Home extends StatelessWidget {
+class Home extends StatefulWidget {
   Home({super.key});
 
-  final user = FirebaseAuth.instance.currentUser!;
+  @override
+  _HomeState createState() => _HomeState();
+}
 
+class _HomeState extends State<Home> {
+  final user = FirebaseAuth.instance.currentUser!;
+ 
   void logout(){
     FirebaseAuth.instance.signOut();
   }
+
+  List<String> docIDs = [];
+
+  Future getDocIDs() async {
+    final snapshot = await FirebaseFirestore.instance.collection('users').get();
+    for (var doc in snapshot.docs) {
+      docIDs.add(doc.id);
+    }
+  }
+
+  //@override
+  //void initState() {
+    //getDocIDs();
+   // super.initState();
+  //}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,12 +115,43 @@ class Home extends StatelessWidget {
         ),
       ),
       body: Center(
-        child: Text(
-          "Welcome ${user.email!}",
-           style: TextStyle(
-            fontSize: 20
-          ),
-        ),
+        child: Column(
+          children: [
+            Text(
+              "Welcome ${user.email!}",
+              style: TextStyle(
+                fontSize: 20
+              ),
+            ),
+
+            Expanded(
+              child: FutureBuilder(
+                future: getDocIDs(), 
+                builder: (context, snapshot){
+                  return ListView.builder(
+                    itemCount: docIDs.length,
+                    itemBuilder: (context, index){
+                      return Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Card(
+                          child: ListTile(
+                            title: Getuserdata(documentId: docIDs[index]),
+                            trailing: IconButton(
+                              icon: Icon(Icons.arrow_forward),
+                              onPressed: () {
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen()));
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  );
+                }
+              )
+            )
+          ],
+        )
       ),
     );
  
