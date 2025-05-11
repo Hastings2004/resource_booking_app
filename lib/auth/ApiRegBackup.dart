@@ -1,10 +1,12 @@
-import 'package:firebase_auth/firebase_auth.dart';
+//import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:resource_booking_app/auth/Api.dart';
 import 'package:resource_booking_app/auth/login.dart';
 import 'package:resource_booking_app/components/TextField.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+//import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
+
+import 'package:resource_booking_app/users/Home.dart';
 
 class Register extends StatefulWidget {
   final VoidCallback showLoginScreen;
@@ -22,6 +24,7 @@ class _RegisterState extends State<Register> {
   final lastNameController = TextEditingController();
   final phoneNumberController = TextEditingController();
   final regNumberController = TextEditingController();
+  
   @override
   void dispose() {
     emailController.dispose();
@@ -34,31 +37,71 @@ class _RegisterState extends State<Register> {
     super.dispose();
   }
 
-  void signUpUser() async{
+  void signUpUser() async {
+    setState(() {
+      _errorMessage = null; // Clear any previous error messages
+    });
+
     var data = {
       "name": firstNameController.text,
       "email": emailController.text,
       "password": passwordController.text,
       "password_confirmation": confirmPasswordController.text,
+      "phone_number": phoneNumberController.text,
+      "reg_number": regNumberController.text,
+      "last_name": lastNameController.text,
     };
 
     var res = await CallApi().postData(data, 'register');
     var body = json.decode(res.body);
 
-    if(body['success'] == true) {
-      Navigator.pushReplacement(
+    if (body['success'] == true) {
+      Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => LoginScreen(showRegisterPage: () {
-            
-          },),
+          builder: (context) => Home(),
         ),
       );
     } else {
-      // Handle registration error
-      print("Registration failed: ${body['message']}");
+      // Handle registration error and show all validation messages
+      if (body.containsKey('errors')) {
+        Map<String, dynamic> errors = body['errors'];
+        String errorMessage = "";
+        errors.forEach((key, value) {
+          errorMessage += "${value.join('\n')}\n";
+        });
+        setState(() {
+          _errorMessage = errorMessage.trim();
+        });
+      } else if (body.containsKey('message')) {
+        setState(() {
+          _errorMessage = body['message'];
+        });
+      } else {
+        setState(() {
+          _errorMessage = "Registration failed. Please try again.";
+        });
+      }
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text("Registration Failed"),
+            content: Text(_errorMessage!),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text("OK"),
+              )
+            ],
+          );
+        },
+      );
     }
   }
+  String? _errorMessage;
   
   @override
   Widget build(BuildContext context) {
