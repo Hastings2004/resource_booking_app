@@ -38,6 +38,8 @@ dependencies:
   firebase_auth: ^5.5.3
   cloud_firestore: ^5.6.7
   http: ^1.4.0
+  firebase_storage: ^12.4.5
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
@@ -67,6 +69,7 @@ flutter:
       - assets/images/logo.png
       - assets/images/hes.jpg
       - assets/images/chari.jpg
+      - assets/images/ju.jpg
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

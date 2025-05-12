@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:resource_booking_app/components/AppBar.dart';
+import 'package:resource_booking_app/components/UploadingImg.dart';
+import 'package:resource_booking_app/read_data/ResourceList.dart';
 import 'package:resource_booking_app/read_data/getUserData.dart';
 import 'package:resource_booking_app/users/Booking.dart';
 import 'package:resource_booking_app/users/Profile.dart';
@@ -88,7 +90,7 @@ class _HomeState extends State<Home> {
             ListTile(
               title: const Text('Resources'),
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => ResourcesScreen()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => Resourcelist()));
               },
             ),
             ListTile(

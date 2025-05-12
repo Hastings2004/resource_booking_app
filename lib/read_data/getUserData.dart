@@ -52,11 +52,16 @@ class Getuserdata extends StatelessWidget {
                   ),
                 )
               ),
-            Text(
-              '${data['first_name']} ${data['last_name']}\n'
-              '${data['email']}\n'
-              '${data['phone_number']}',
-            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Center(
+                child: Text(
+                  '${data['first_name']} ${data['last_name']}\n'
+                  '${data['email']}\n'
+                  '${data['phone_number']}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+            )
         ]
       );
       },
