@@ -8,7 +8,7 @@ allprojects {
 val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
 rootProject.layout.buildDirectory.value(newBuildDir)
 dependencies {
-    implementation("androidx.annotation:annotation:1.9.1")
+    
 }
 
 subprojects {
