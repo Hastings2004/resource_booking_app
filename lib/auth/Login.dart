@@ -9,8 +9,9 @@ class LoginScreen extends StatefulWidget {
 
   final VoidCallback showRegisterPage;
 
-  const LoginScreen ({super.key, 
-  required this.showRegisterPage
+  const LoginScreen ({
+    super.key, 
+    required this.showRegisterPage
   });
 
   @override
@@ -67,6 +68,8 @@ class __LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (context) => Home()), // Replace HomeScreen() with your actual home screen widget
       );
 
+      Navigator.pop(context);
+
     } on FirebaseAuthException catch (e) {
       Navigator.pop(context);
       
@@ -102,7 +105,6 @@ class __LoginScreenState extends State<LoginScreen> {
     _passwordController.dispose();
     super.dispose();
   }
-
    void emptyFieldMessage(){
     showDialog(
         context: context, 
@@ -168,10 +170,12 @@ class __LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 20),
+              //const SizedBox(height: 100),
               Image.asset(
-                "images/logo.png",
+                "assets/images/logo.png",
                 height: 100
               ),
               const SizedBox(height: 20),

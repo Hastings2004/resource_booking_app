@@ -42,7 +42,7 @@ class Getuserdata extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10), // Optional: for rounded corners
                       child: Image.asset(
-                        photoUrl,
+                        "assets/"+photoUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return const Center(child: Icon(Icons.person)); // Show a default icon on error

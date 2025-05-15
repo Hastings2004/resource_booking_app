@@ -51,7 +51,10 @@ class _ResourseScreenState extends State<ResourcesScreen> {
               ),
               child: Column(
                 children: [
-                  Image.asset("images/logo.png", height: 50),
+                  Image.asset(
+                      "assets/images/logo.png",
+                      height: 50
+                  ),
                   const Text(
                     'Mzuzu University',
                     style: TextStyle(

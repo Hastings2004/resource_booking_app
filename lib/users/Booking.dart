@@ -29,7 +29,7 @@ class BookingScreen extends StatelessWidget {
               child: Column(
                 children: [
                   Image.asset(
-                    "images/logo.png",
+                    "assets/images/logo.png",
                     height: 50
                   ),
                   Text(
