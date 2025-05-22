@@ -116,7 +116,8 @@ class _ForgetpasswordState extends State<Forgetpassword> {
             MyTextField(
               hintText: "Email", 
               controller: emailController, 
-              obscureText: false
+              obscureText: false,
+              prefixIcon: const Icon(Icons.email),
             ),
             const SizedBox(height: 20),
 

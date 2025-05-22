@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:resource_booking_app/auth/Api.dart';
+import 'package:resource_booking_app/auth/Api.dart'; // Assuming this handles http requests
+import 'package:resource_booking_app/auth/ForgetPassword.dart';
+import 'package:resource_booking_app/components/Button.dart';
+import 'package:resource_booking_app/components/TextField.dart';
 import 'dart:convert';
-
 import 'package:resource_booking_app/users/Home.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback showRegisterScreen;
@@ -18,23 +21,9 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorMessage;
 
   Future<void> loginUser() async {
+    // 1. Validate input fields
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            content: const Text("Please fill in all fields"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text("OK"),
-              )
-            ],
-          );
-        },
-      );
+      _showErrorDialog("Please fill in all fields.");
       return;
     }
 
@@ -42,67 +31,84 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null; // Clear any previous error messages
     });
 
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        },
-      );
+    // 2. Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      },
+    );
 
+    try {
+      // 3. Prepare data for the API request
       var data = {
         "email": _emailController.text.trim(),
         "password": _passwordController.text.trim(),
       };
 
+      // 4. Make the API call using your CallApi class
+      // Ensure your CallApi().postData handles headers like 'Content-Type': 'application/json'
       var res = await CallApi().postData(data, 'login');
       var body = json.decode(res.body);
 
-      Navigator.pop(context); // Pop the loading indicator
+      // 5. Dismiss the loading indicator
+      Navigator.pop(context);
 
-      if (body['success'] == true) {
-        // Store the token or user information if needed
-        // Example:
-        // String token = body['token'];
+      // 6. Handle API response
+      if (res.statusCode == 200 && body['success'] == true) {
+        // Assuming your Laravel API returns a 'token' upon successful login
+        final String token = body['token'];
+
+        // Store the token using shared_preferences for future authenticated requests
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('name', token);
+
+        // Navigate to the home screen
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => Home()), // Replace Home() with your actual home screen widget
+          MaterialPageRoute(builder: (context) => Home()),
         );
       } else {
-        // Handle login errors from Laravel API
+        // Handle login errors from Laravel API based on response structure
+        String displayMessage = "Login failed. Please try again.";
+
         if (body.containsKey('errors')) {
+          // Laravel validation errors (e.g., if you use validation rules)
           Map<String, dynamic> errors = body['errors'];
-          String errorMessage = "";
+          List<String> errorMessages = [];
           errors.forEach((key, value) {
-            errorMessage += "${value.join('\n')}\n";
+            if (value is List) {
+              errorMessages.addAll(value.map((e) => e.toString()));
+            } else {
+              errorMessages.add(value.toString());
+            }
           });
-          setState(() {
-            _errorMessage = errorMessage.trim();
-          });
+          displayMessage = errorMessages.join('\n');
         } else if (body.containsKey('message')) {
-          setState(() {
-            _errorMessage = body['message'];
-          });
-        } else {
-          setState(() {
-            _errorMessage = "Login failed. Please try again.";
-          });
+          // General error message from Laravel (e.g., 'Invalid credentials')
+          displayMessage = body['message'];
         }
+
+        setState(() {
+          _errorMessage = displayMessage;
+        });
         _showErrorDialog(_errorMessage!);
       }
     } catch (e) {
+      // Catch any network or parsing errors
       Navigator.pop(context); // Pop the loading indicator in case of an exception
       setState(() {
-        _errorMessage = "An unexpected error occurred. Please try again.";
+        _errorMessage = "Could not connect to the server. Please check your internet connection or try again later.";
       });
       _showErrorDialog(_errorMessage!);
-      print("Login Error: $e");
+      print("Login Error: $e"); // Log the error for debugging
     }
   }
 
+  // --- Helper for showing error dialogs ---
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -135,101 +141,99 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 50),
-                  Image.asset(
-                    "images/logo.png",
-                    height: 100,
-                  ),
-                  const SizedBox(height: 30),
-                  const Text(
-                    "Welcome Back!",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Color.fromARGB(255, 17, 105, 20),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    "Login to your account",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  TextField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      hintText: "Email",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      hintText: "Password",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 25),
-                  GestureDetector(
-                    onTap: loginUser,
-                    child: Container(
-                      padding: const EdgeInsets.all(25),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 17, 105, 20),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          "Login",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Don't have an account?",
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(width: 5),
-                      GestureDetector(
-                        onTap: widget.showRegisterScreen,
-                        child: Text(
-                          "Register now",
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Image.asset("assets/images/logo.png", height: 100),
+              const SizedBox(height: 20),
+              const Text(
+                "Resource Booking App",
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
+                  color: Color.fromARGB(255, 17, 105, 20),
+                ),
               ),
-            ),
+              const SizedBox(height: 20),
+              const Text(
+                'Login',
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: Color.fromARGB(255, 17, 105, 20),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Replaced TextField with MyTextField
+              MyTextField(
+                controller: _emailController,
+                hintText: "Email",
+                keyboardType: TextInputType.emailAddress,
+                prefixIcon: const Icon(Icons.email),
+              ),
+              const SizedBox(height: 10),
+              // Replaced TextField with MyTextField
+              MyTextField(
+                controller: _passwordController,
+                hintText: "Password",
+                obscureText: true,
+                prefixIcon: const Icon(Icons.lock),
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Forgetpassword(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        "Forget password?",
+                        style: TextStyle(
+                          color: Colors.blue[700],
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              MyButton(onTap: loginUser, text: "Login"),
+              const SizedBox(height: 10),
+              GestureDetector(
+                onTap: widget.showRegisterScreen, // Use showRegisterScreen
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Don't have an account?",
+                      style: TextStyle(
+                        color: Colors.green[700],
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      "Register now",
+                      style: TextStyle(
+                        color: Colors.blue[700],
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            ],
           ),
         ),
       ),

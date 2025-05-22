@@ -27,11 +27,11 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
         onPressed: () {
           Scaffold.of(context).openDrawer();
         }, 
-        icon: const Icon(Icons.menu),
+        icon: const Icon(Icons.menu, color: Colors.white,),
     ), 
     actions: <Widget>[
       IconButton(
-        icon: const Icon(Icons.notifications),
+        icon: const Icon(Icons.notifications,color: Colors.white),
         onPressed: () {
           // Handle notification button press
           Navigator.push(context, MaterialPageRoute(
@@ -40,7 +40,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
         },
       ),
       IconButton(
-        icon: const Icon(Icons.settings),
+        icon: const Icon(Icons.settings, color: Colors.white),
         onPressed: () {
           // Handle settings button press
           Navigator.push(context, MaterialPageRoute(

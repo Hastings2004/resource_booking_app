@@ -1,10 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:resource_booking_app/auth/Api.dart'; // Assuming this handles http requests
 import 'package:resource_booking_app/components/Button.dart';
-import 'package:resource_booking_app/components/TextField.dart'; // Assuming this is your custom text field widget
-import 'dart:convert';
-import 'package:resource_booking_app/users/Home.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Import for storing the token
+import 'package:resource_booking_app/components/TextField.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Register extends StatefulWidget {
   final VoidCallback showLoginScreen;
@@ -22,9 +20,6 @@ class _RegisterState extends State<Register> {
   final lastNameController = TextEditingController();
   final phoneNumberController = TextEditingController();
   final regNumberController = TextEditingController();
-
-  String? _errorMessage; // To display error messages below the form
-
   @override
   void dispose() {
     emailController.dispose();
@@ -37,130 +32,173 @@ class _RegisterState extends State<Register> {
     super.dispose();
   }
 
-  // --- Helper for showing error dialogs ---
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Registration Failed"),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text("OK"),
-            )
-          ],
-        );
-      },
-    );
-  }
+  Future addUserDetails() async{
+    final user = FirebaseAuth.instance.currentUser;
+    final uid = user?.uid;
 
-  void signUpUser() async {
-    // Clear any previous error messages
-    setState(() {
-      _errorMessage = null;
-    });
-
-    // Client-side validation: Check for empty fields
-    if (firstNameController.text.isEmpty ||
-        lastNameController.text.isEmpty ||
-        regNumberController.text.isEmpty ||
-        phoneNumberController.text.isEmpty ||
-        emailController.text.isEmpty ||
-        passwordController.text.isEmpty ||
-        confirmPasswordController.text.isEmpty) {
-      _showErrorDialog("Please fill in all fields.");
-      return;
-    }
-
-    // Client-side validation: Check if passwords match
-    if (passwordController.text != confirmPasswordController.text) {
-      _showErrorDialog("Passwords do not match. Please try again.");
-      return;
-    }
-
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return const Center(
-          child: CircularProgressIndicator(),
-        );
-      },
-    );
-
-    try {
-      // Prepare data for the API request
-      var data = {
-        "name": firstNameController.text.trim(), // Use first_name as per common Laravel convention
+    if(uid != null){
+      await FirebaseFirestore.instance.collection("users").doc(uid).set({
+        "first_name": firstNameController.text.trim(),
         "last_name": lastNameController.text.trim(),
-        "registration_number": regNumberController.text.trim(), // Use registration_number
+        "reg_number": regNumberController.text.trim(),
         "phone_number": phoneNumberController.text.trim(),
         "email": emailController.text.trim(),
-        "password": passwordController.text,
-        "password_confirmation": confirmPasswordController.text,
-      };
-
-      // Make the API call using your CallApi class
-      // Ensure your CallApi().postData handles headers like 'Content-Type': 'application/json'
-      var res = await CallApi().postData(data, 'register'); // Your Laravel registration API endpoint
-      var body = json.decode(res.body);
-
-      // Dismiss the loading indicator
-      Navigator.pop(context);
-
-      // Handle API response
-      if (res.statusCode == 200 && body['success'] == true) {
-        // Assuming your Laravel API returns a 'token' upon successful registration
-        final String token = body['token'];
-
-        // Store the token using shared_preferences
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', token);
-
-        // Navigate to the home screen upon successful registration
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => Home()),
-        );
-      } else {
-        // Handle registration errors from Laravel API based on response structure
-        String displayMessage = "Registration failed. Please try again.";
-
-        if (body.containsKey('errors')) {
-          // Laravel validation errors (e.g., if you use validation rules)
-          Map<String, dynamic> errors = body['errors'];
-          List<String> errorMessages = [];
-          errors.forEach((key, value) {
-            if (value is List) {
-              errorMessages.addAll(value.map((e) => e.toString()));
-            } else {
-              errorMessages.add(value.toString());
-            }
-          });
-          displayMessage = errorMessages.join('\n');
-        } else if (body.containsKey('message')) {
-          // General error message from Laravel (e.g., 'Email already taken')
-          displayMessage = body['message'];
-        }
-
-        setState(() {
-          _errorMessage = displayMessage;
-        });
-        _showErrorDialog(_errorMessage!);
-      }
-    } catch (e) {
-      // Catch any network or parsing errors
-      Navigator.pop(context); // Pop the loading indicator in case of an exception
-      setState(() {
-        _errorMessage = "Could not connect to the server. Please check your internet connection or try again later.";
       });
-      _showErrorDialog(_errorMessage!);
-      print("Registration Error: $e"); // Log the error for debugging
+    }
+  }
+  Future signUpUser() async{
+
+    if(emailController.text.isEmpty ||
+        passwordController.text.isEmpty ||
+        confirmPasswordController.text.isEmpty ||
+        firstNameController.text.isEmpty ||
+        lastNameController.text.isEmpty ||
+        phoneNumberController.text.isEmpty ||
+        regNumberController.text.isEmpty
+    ){
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              content: const Text("Please fill in all fields"),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text("OK")
+                )
+              ],
+            );
+          }
+      );
+      return;
+    }
+
+
+    if(passwordConfirm()){
+
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+      );
+
+      try {
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: emailController.text.trim(),
+            password: passwordController.text.trim()
+        );
+        // ignore: use_build_context_synchronously
+
+        // Add user details to the database
+        addUserDetails();
+        Navigator.pop(context);
+      } on FirebaseAuthException catch (e) {
+
+        Navigator.pop(context);
+
+        if(e.code == 'weak-password') {
+          showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  content: const Text("Password is too weak"),
+                  actions: [
+                    TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text("OK")
+                    )
+                  ],
+                );
+              }
+          );
+        } else if (e.code == 'email-already-in-use') {
+          showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  content: const Text("Email already in use"),
+                  actions: [
+                    TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text("OK")
+                    )
+                  ],
+                );
+              }
+          );
+
+        } else if (e.code == 'invalid-email') {
+          showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  content: const Text("Invalid email"),
+                  actions: [
+                    TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text("OK")
+                    )
+                  ],
+                );
+              }
+          );
+        } else {
+          showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  content: const Text("An error occurred"),
+                  actions: [
+                    TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text("OK")
+                    )
+                  ],
+                );
+              }
+          );
+        }
+      }
+    }
+  }
+
+
+
+  bool passwordConfirm() {
+    if(passwordController.text.trim() == confirmPasswordController.text.trim()){
+      return true;
+    }else{
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              content: const Text("Password do not match"),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text("OK")
+                )
+              ],
+            );
+          }
+      );
+      return false;
     }
   }
 
@@ -179,7 +217,7 @@ class _RegisterState extends State<Register> {
                 children: [
                   const SizedBox(height: 10),
                   Image.asset(
-                    "images/logo.png", // Ensure this path is correct
+                    "assets/images/logo.png", // Ensure this path is correct
                     height: 100,
                   ),
                   const SizedBox(height: 10),
@@ -256,15 +294,6 @@ class _RegisterState extends State<Register> {
                   ),
                   const SizedBox(height: 20), // Reduced spacing slightly
                   // Display error message if any
-                  if (_errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 15.0),
-                      child: Text(
-                        _errorMessage!,
-                        style: const TextStyle(color: Colors.red, fontSize: 14),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
 
                   MyButton(onTap: signUpUser, text: "Sign Up",),
                   const SizedBox(
@@ -295,4 +324,5 @@ class _RegisterState extends State<Register> {
       ),
     );
   }
+
 }
