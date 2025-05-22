@@ -1,16 +1,21 @@
+// lib/components/my_text_field.dart
 import 'package:flutter/material.dart';
 
 class MyTextField extends StatelessWidget {
+  final TextEditingController controller;
   final String hintText;
-  final controller;
   final bool obscureText;
+  final TextInputType keyboardType;
+  final Icon? prefixIcon; // Made optional
 
   const MyTextField({
     super.key,
-    required this.hintText,
     required this.controller,
-    required this.obscureText ,
-    });
+    required this.hintText,
+    this.obscureText = false, // Default to false if not provided
+    this.keyboardType = TextInputType.text, // Default to text if not provided
+    this.prefixIcon, // Optional icon
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,28 +24,21 @@ class MyTextField extends StatelessWidget {
       child: TextField(
         controller: controller,
         obscureText: obscureText,
-        
+        keyboardType: keyboardType,
         decoration: InputDecoration(
           enabledBorder: const OutlineInputBorder(
-            borderSide: BorderSide(
-              color: Colors.white
-            )
+            borderSide: BorderSide(color: Colors.white),
           ),
           focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(
-              color: Colors.grey.shade400
-            ),
-            
+            borderSide: BorderSide(color: Colors.grey.shade400),
           ),
           fillColor: Colors.grey.shade200,
           filled: true,
           hintText: hintText,
-          hintStyle: TextStyle(
-            color: Colors.grey[500]
-          )
+          hintStyle: TextStyle(color: Colors.grey[500]),
+          prefixIcon: prefixIcon, 
         ),
       ),
-            
     );
   }
 }
